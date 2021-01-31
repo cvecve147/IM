@@ -8,7 +8,7 @@ export class UserEntity {
   @Column({ nullable: false })
   name: string;
 
-  @Column({ nullable: false, select: false })
+  @Column({ select: false })
   password: string;
 
   @Column({ nullable: true })
