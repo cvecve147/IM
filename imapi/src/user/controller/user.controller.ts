@@ -6,11 +6,15 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { Observable, of } from 'rxjs';
-import { User } from '../models/user.interface';
+import { User, UserRole } from '../models/user.interface';
 import { UserService } from '../service/user.service';
 import { catchError, map } from 'rxjs/operators';
+import { hasRoles } from 'src/auth/auth/decorator/roles.decorator';
+import { JwtAuthGuard } from 'src/auth/auth/guards/jwt-guards';
+import { RolesGuard } from 'src/auth/auth/guards/roles.guards';
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
@@ -37,6 +41,8 @@ export class UserController {
     return this.userService.findOne(params.id);
   }
 
+  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   findAll(): Observable<User[]> {
     return this.userService.findAll();

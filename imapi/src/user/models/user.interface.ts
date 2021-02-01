@@ -5,5 +5,11 @@ export interface User {
   level?: string;
   industry?: string;
   position?: string;
-  power?: string;
+  power?: UserRole;
+}
+
+export enum UserRole {
+  ADMIN = 'admin',
+  ROOT = 'root',
+  USER = 'user',
 }

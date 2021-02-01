@@ -1,4 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { UserRole } from './user.interface';
 
 @Entity()
 export class UserEntity {
@@ -20,6 +21,11 @@ export class UserEntity {
   @Column({ nullable: true })
   position: string;
 
-  @Column({ nullable: false })
-  power: string;
+  @Column({
+    nullable: false,
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  power: UserRole;
 }
