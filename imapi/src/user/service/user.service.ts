@@ -6,7 +6,11 @@ import { Repository } from 'typeorm';
 import { UserEntity } from '../models/user.entity';
 import { User } from '../models/user.interface';
 import { switchMap, map } from 'rxjs/operators';
-
+import {
+  paginate,
+  Pagination,
+  IPaginationOptions,
+} from 'nestjs-typeorm-paginate';
 @Injectable()
 export class UserService {
   constructor(
@@ -45,9 +49,14 @@ export class UserService {
     return from(this.userRepository.update(id, user));
   }
 
+  paginate(options: IPaginationOptions): Observable<Pagination<User>> {
+    return from(paginate<User>(this.userRepository, options));
+  }
+
   updateOne(id: number, user: User): Observable<any> {
     delete user.name;
     delete user.password;
+    delete user.power;
 
     return from(this.userRepository.update(id, user));
   }

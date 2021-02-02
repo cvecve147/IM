@@ -15,6 +15,9 @@ import { catchError, map } from 'rxjs/operators';
 import { hasRoles } from 'src/auth/auth/decorator/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/auth/guards/jwt-guards';
 import { RolesGuard } from 'src/auth/auth/guards/roles.guards';
+import { Pagination } from 'nestjs-typeorm-paginate';
+import { Query } from '@nestjs/common';
+
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
@@ -39,6 +42,19 @@ export class UserController {
   @Get(':id')
   findOne(@Param() params): Observable<User> {
     return this.userService.findOne(params.id);
+  }
+
+  @Get()
+  index(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Observable<Pagination<User>> {
+    limit = limit > 100 ? 100 : limit;
+    return this.userService.paginate({
+      page,
+      limit,
+      route: 'http://localhost:3000/users',
+    });
   }
 
   @hasRoles(UserRole.ADMIN, UserRole.ROOT)
