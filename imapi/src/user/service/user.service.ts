@@ -77,7 +77,10 @@ export class UserService {
 
   validateUser(name: string, password: string): Observable<User> {
     return from(
-      this.userRepository.findOne({ name }, { select: ['id', 'password'] }),
+      this.userRepository.findOne(
+        { name },
+        { select: ['id', 'password', 'power'] },
+      ),
     ).pipe(
       switchMap((user: User) =>
         this.authService.comparePasswords(password, user.password).pipe(

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AppService } from './app.service';
+import { hasRoles } from './auth/auth/decorator/roles.decorator';
 
 @Controller()
 export class AppController {
@@ -15,11 +16,5 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
-  }
-
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile('file') file) {
-    return file;
   }
 }
