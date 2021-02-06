@@ -44,6 +44,24 @@ export class UserController {
     return this.userService.findOne(params.id);
   }
 
+  @Get('Root/User')
+  findUser(): Observable<User[]> {
+    return this.userService.findAll().pipe(
+      map((users) => {
+        return users.filter((user) => user.power == UserRole.USER);
+      }),
+    );
+  }
+
+  @Get('Root/Admin')
+  findAdmin(): Observable<User[]> {
+    return this.userService.findAll().pipe(
+      map((users) => {
+        return users.filter((user) => user.power != UserRole.USER);
+      }),
+    );
+  }
+
   @Get()
   index(
     @Query('page') page: number = 1,
