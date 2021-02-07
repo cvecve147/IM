@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Get, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { from, Observable } from 'rxjs';
 import { AuthService } from 'src/auth/auth/auth.service';
 import { Repository } from 'typeorm';
 import { UserEntity } from '../models/user.entity';
-import { User } from '../models/user.interface';
+import { User, UserRole } from '../models/user.interface';
 import { switchMap, map } from 'rxjs/operators';
 import {
   paginate,
@@ -32,15 +32,40 @@ export class UserService {
         return from(this.userRepository.save(newUser));
       }),
     );
-    // return from(this.userRepository.save(user));
+  }
+  async createAll(users: User[]) {
+    return await this.userRepository
+      .createQueryBuilder()
+      .insert()
+      .into(UserEntity)
+      .values(users)
+      .execute();
   }
 
+  async findName(UserName: String) {
+    return await this.userRepository.findOne({ where: { name: UserName } });
+  }
   findOne(id: number): Observable<User> {
     return from(this.userRepository.findOne({ id }));
   }
 
   findAll(): Observable<User[]> {
     return from(this.userRepository.find());
+  }
+  findUser(): Observable<User[]> {
+    return from(
+      this.userRepository.find({
+        where: { power: UserRole.USER },
+      }),
+    );
+  }
+  findAdmin(): Observable<User[]> {
+    return from(
+      this.userRepository.find({
+        select: ['id', 'name', 'power'],
+        where: [{ power: UserRole.ADMIN }, { power: UserRole.ROOT }],
+      }),
+    );
   }
   deleteOne(id: number): Observable<any> {
     return from(this.userRepository.delete(id));

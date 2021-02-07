@@ -11,7 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { Observable, of } from 'rxjs';
+import { from, Observable, of } from 'rxjs';
 import { User, UserRole } from '../models/user.interface';
 import { UserService } from '../service/user.service';
 import { catchError, map } from 'rxjs/operators';
@@ -20,13 +20,15 @@ import { JwtAuthGuard } from 'src/auth/auth/guards/jwt-guards';
 import { RolesGuard } from 'src/auth/auth/guards/roles.guards';
 import { Pagination } from 'nestjs-typeorm-paginate';
 import { Query } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { FileInterceptor } from '@nestjs/platform-express';
-
+import { readFile, utils } from 'xlsx';
+import { UserEntity } from '../models/user.entity';
 @Controller('users')
 export class UserController {
   constructor(private userService: UserService) {}
 
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @hasRoles(UserRole.ROOT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
   create(@Body() user: User): Observable<User | Object> {
@@ -34,6 +36,35 @@ export class UserController {
       map((user: User) => user),
       catchError((err) => of({ error: err.message })),
     );
+  }
+
+  @Post('upload/upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      dest: './uploads',
+    }),
+  )
+  async upload(@UploadedFile() file) {
+    const res = readFile(file.path);
+    const first_worksheet = res.Sheets[res.SheetNames[0]];
+    const data = utils.sheet_to_json(first_worksheet, { header: 1 });
+    const transData = [];
+
+    await data.forEach(async (el) => {
+      const user = new UserEntity();
+      user.name = el[0] ? el[0] : '';
+      user.password = String(el[1]) ? String(el[1]) : '';
+      user.address = el[2] ? el[2] : '';
+      user.phoneNumber = el[3] ? el[3] : '';
+      user.level = el[4] ? el[4] : '';
+      user.power = UserRole.USER;
+      if (user.name != '學號') {
+        console.log(user);
+        transData.push(user);
+      }
+    });
+
+    return await this.userService.createAll(transData);
   }
 
   @Post('login')
@@ -46,7 +77,7 @@ export class UserController {
     );
   }
 
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @hasRoles(UserRole.ROOT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   findOne(@Param() params): Observable<User> {
@@ -57,52 +88,24 @@ export class UserController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('Root/User')
   findUser(): Observable<User[]> {
-    return this.userService.findAll().pipe(
-      map((users) => {
-        return users.filter((user) => user.power == UserRole.USER);
-      }),
-    );
+    return this.userService.findUser();
   }
 
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @hasRoles(UserRole.ROOT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('Root/Admin')
   findAdmin(): Observable<User[]> {
-    return this.userService.findAll().pipe(
-      map((users) => {
-        return users.filter((user) => user.power != UserRole.USER);
-      }),
-    );
+    return this.userService.findAdmin();
   }
 
-  @Get()
-  index(
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-  ): Observable<Pagination<User>> {
-    limit = limit > 100 ? 100 : limit;
-    return this.userService.paginate({
-      page,
-      limit,
-      route: 'http://localhost:3000/users',
-    });
-  }
-
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get()
-  findAll(): Observable<User[]> {
-    return this.userService.findAll();
-  }
-
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @hasRoles(UserRole.ROOT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   deleteOne(@Param('id') id: string): Observable<any> {
     return this.userService.deleteOne(Number(id));
   }
 
-  @hasRoles(UserRole.ADMIN, UserRole.ROOT)
+  @hasRoles(UserRole.ROOT)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')
   updateOne(@Param('id') id: string, @Body() user: User): Observable<any> {
@@ -112,21 +115,11 @@ export class UserController {
   @hasRoles(UserRole.USER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put('edit/self')
-  updateSelf(
-    @Request() req,
-    @Param('id') id: string,
-    @Body() user: User,
-  ): Observable<any> {
+  updateSelf(@Request() req, @Body() user: User): Observable<any> {
     delete user.power;
     delete user.name;
     delete user.password;
     return this.userService.updateOne(Number(req.user.user.id), user);
-  }
-
-  @Post('upload/excel')
-  @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile('file') file) {
-    return file;
   }
 
   @hasRoles(UserRole.USER, UserRole.ROOT, UserRole.ADMIN)
